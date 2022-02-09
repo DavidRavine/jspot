@@ -1,0 +1,13 @@
+LanguagePack.de_de = {
+    "Accounts": "Benutzerkonten",
+    "Enter Password": "",
+    "%o": (day, twoDigitday) => `${day}er`,
+    "%M": [
+        "Januar",
+        "Februar",
+        "März"
+    ],
+    "Sidebar": {
+        "Themes": "Designs"
+    }
+}

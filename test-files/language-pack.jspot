@@ -1,0 +1,10 @@
+LanguagePack = {
+    "Accounts": "",
+    "Enter Password": "",
+    "%o": (day, twoDigitday) => "",
+    "%M": ['a', 'b', 'cde'],
+    "Sidebar": {
+        "Themes": ""
+    },
+    "Last item": ""
+}

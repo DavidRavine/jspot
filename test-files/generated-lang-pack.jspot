@@ -1,0 +1,13 @@
+LanguagePack = {
+    "Shutting down...": "",
+    "Accounts": "",
+    "Enter password": "",
+    "24-Hour mode": "",
+    "%o": (day, twoDigitDay) => "",
+    "Sidebar" : {
+        "Accounts": "",
+    },
+    "Date Format" : {
+        "%D, %o of %M, %y": "",
+    },
+}

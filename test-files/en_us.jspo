@@ -1,0 +1,11 @@
+LanguagePack.en_us = {
+    "%o": (day, twoDigitday) => day + ({"1":"st", "2":"nd", "3":"rd"}[twoDigitday[1]] || "th"),
+    "%M": [
+        "January",
+        "February",
+        "March"
+    ],
+    "Sidebar": {
+        "Themes": ""
+    }
+};
