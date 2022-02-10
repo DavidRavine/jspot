@@ -5,6 +5,7 @@ html_re = re.compile("<l-10n\s*((?P<prop>\w+)=?[\"'](?P<propval>[^\"']+)[\"'])?>
 global_js_re = re.compile("\.__\(\s*[\"'](.+)(?:[\"']\s*\))")
 param_js_re = re.compile("\._p\(\s*[\"'](.+)(?:[\"']\s*,)\s*(.+)(?:\s*\))")
 ctx_js_re = re.compile("\._x\(\s*[\"'](.+)(?:[\"']\s*,)\s*[\"'](.+)(?:[\"']\s*)")
+arg_re = re.compile("[a-zA-Z][a-zA-Z1-9]*")
 
 contexts = {
     "global": {}
@@ -24,13 +25,24 @@ def evaluate_html_tags(fcontents):
                     contexts["global"][attr_match.group(1)] = ""
         else:
             contexts["global"][match.group("string")] = ""
+class It:
+    it = 0
+    def reset(self):
+        self.it = 0
+    def get(self):
+        self.it += 1
+        return self.it
 
 def evaluate_js_calls(fcontents):
     for match in global_js_re.finditer(fcontents):
         contexts["global"][match.group(1)] = ""
 
+    i = It()
     for match in param_js_re.finditer(fcontents):
-        contexts["global"][match.group(1)] = f"({match.group(2)}) => \"\""
+        i.reset()
+        args = match.group(2).split(",")
+        args = map(lambda a: a.strip() if arg_re.fullmatch(a.strip()) else f"arg{i.get()}" , args)
+        contexts["global"][match.group(1)] = f"({', '.join(args)}) => \"\""
 
     for match in ctx_js_re.finditer(fcontents):
         if match.group(2) not in contexts:
@@ -39,16 +51,16 @@ def evaluate_js_calls(fcontents):
 
 def get_strings(file):
     fstream = open(file, "r")
-    fcontents = fstream.read()
 
     if (file[-4:] == "html"):
-        evaluate_html_tags(fcontents)
+        evaluate_html_tags(fstream.read())
     elif (file[-2:] == "js"):
-        evaluate_js_calls(fcontents)
+        evaluate_js_calls(fstream.read())
 
 def scan_files(dir):
     for root, dirs, files in os.walk(dir):
         for filename in files:
+            print(os.path.join(root, filename))
             get_strings(os.path.join(root, filename))
 
 

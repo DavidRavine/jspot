@@ -11,6 +11,19 @@ class Parser:
     def get_contexts(self):
         return self.contexts
     
+    def commit_token(self, ctx, key_token, package_member = False, token = ""):
+        if (not package_member):
+            if (ctx not in self.contexts):
+                self.contexts[ctx] = {}
+            self.contexts[ctx][key_token] = {}
+        else:
+            if (key_token not in self.contexts[ctx]):
+                print(f'  WARNING: key "{key_token}" in member "{package_member}" is not part of the template for package "{self._package_name}"!')
+                print('  skipping ... ')
+                return
+            self.contexts[ctx][key_token][package_member] = token
+        print(key_token + ": " + token)
+
     def parse_file(self, file):
         package_start = False
         package_name = False
@@ -25,11 +38,14 @@ class Parser:
         comment = False
         escape_char = False
         colon = False
+        is_func = False
         whitespace = re.compile("\s")
         is_member = re.compile("([a-zA-Z]\w+)\.([a-zA-Z]\w+)")
 
         char = ' '
+        prevChar = ''
         while char != '':
+            prevChar = char
             char = file.read(1)
 
             # ignore line comments
@@ -38,13 +54,15 @@ class Parser:
                     comment = False
                     print("comment end")
                 continue
-            # ignore whitespace outside of quotes
+            # ignore whitespace outside of quotes and funcs
             if (not open_quote and whitespace.match(char)):
+                if (is_func and not whitespace.match(prevChar)):
+                    token += " "
                 continue
 
             if (char == '=' and not package_start):
                 if (package_name):
-                    print(f'ERROR: unexpected "=" near "{token}"')
+                    print(f'  ERROR: unexpected "=" near "{token}"')
                     sys.exit()
                 if (is_member.match(token)):
                     result = re.search(is_member, token)
@@ -59,7 +77,7 @@ class Parser:
                 if (not self._package_name):
                     self._package_name = package_name
                 elif (package_name != self._package_name):
-                    print(f"ERROR: Cannot add to package '{package_name}' while working on package '{self._package_name}'")
+                    print(f"  ERROR: Cannot add to package '{package_name}' while working on package '{self._package_name}'")
                     break
                 continue
 
@@ -92,13 +110,7 @@ class Parser:
                 if (not open_quote and bracket_count == 0) :
                     if (key_token != ""):
                         ctx = "global" if brace_count == 0 else current_context
-                        if (not package_member):
-                            if (ctx not in self.contexts):
-                                self.contexts[ctx] = {}
-                            self.contexts[ctx][key_token] = {}
-                        else:
-                            self.contexts[ctx][key_token][package_member] = token
-                        print(key_token + ": " + token)
+                        self.commit_token(ctx, key_token, package_member, token)
                     key_token = ""
                     token = ""
                     colon = False
@@ -115,8 +127,12 @@ class Parser:
                     continue
                 else:
                     brace_count += 1
+                    if (is_func or (colon and token != "")):
+                        is_func = True
+                        token += char
+                        continue
                     if (not package_start):
-                        print(f'ERROR: missing package declaration before "{"{"}"')
+                        print(f'  ERROR: missing package declaration before "{"{"}"')
                         sys.exit()
                     print(f"open brace: '{token}' {key_token} {current_context}")
                     if (token == "" and key_token != "" and current_context == ""):
@@ -129,27 +145,22 @@ class Parser:
                     #commit last pair
                     print(f"last brace: '{key_token}', '{token}'")
                     if (key_token != ""):
-                        if (not package_member):
-                            self.contexts["global"][key_token] = {}
-                        else:
-                            self.contexts["global"][key_token][package_member] = token
+                        self.commit_token("global", key_token, package_member, token)
                         key_token = ""
                         token = ""
                         current_context = ""
                     print("package end")
                     break
                 brace_count -= 1
+                if (is_func):
+                    token += char
+                    if ((brace_count == 0 and current_context == "") or (brace_count == 1 and current_context != "")):
+                        is_func = False
+                    continue
                 if (brace_count == 0):
                     #commit last pair
                     if (key_token != ""):
-                        if (not package_member):
-                            if (current_context not in self.contexts):
-                                self.contexts[current_context] = {}
-                            print(f"committing {current_context} {key_token}")
-                            self.contexts[current_context][key_token] = {}
-                        else:
-                            print(f"committing {current_context} {key_token} {package_member}")
-                            self.contexts[current_context][key_token][package_member] = token
+                        self.commit_token(current_context, key_token, package_member, token)
                     key_token = ""
                     token = ""
                     current_context = ""
@@ -178,7 +189,6 @@ class Parser:
             file.write("},")
 
         file.write("};")
-
 
 
 def __main__():
